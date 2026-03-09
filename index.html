@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BrowserClaw</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"
+        integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"
+        integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu"
+        crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --accent: #374151;
+            --accent-light: #4b5563;
+            --danger: #ef4444;
+            --success: #10b981;
+            --bg-gradient-1: #f3f4f6;
+            --bg-gradient-2: #e5e7eb;
+            --font-size: 13px;
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
+            color: var(--text-primary);
+            font-size: var(--font-size);
+            line-height: 1.6;
+            min-height: 100dvh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            z-index: -1;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: #e2e8f0;
+            top: -100px;
+            left: -100px;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            background: #f1f5f9;
+            bottom: -50px;
+            right: -50px;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            max-width: 840px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: -0.02em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text-primary);
+        }
+
+        /* Badge for active reminders */
+        .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+
+        .chat-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 20px;
+        }
+
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 90%;
+            animation: fadeUp 0.3s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+        }
+
+        .message.user .message-content {
+            background: var(--accent);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.15);
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+        }
+
+        .message.assistant .message-content {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-bottom-left-radius: 4px;
+            color: var(--text-primary);
+        }
+
+        /* Markdown & Content Styling */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 1em 0 0.5em;
+        }
+
+        .message-content p {
+            margin-bottom: 0.5em;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-content code {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 0.1em 0.4em;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .message.user .message-content code {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-content pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .typing-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .input-container {
+            padding: 16px 20px 24px;
+        }
+
+        .input-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .input-box:focus-within {
+            box-shadow: 0 0 0 2px rgba(55, 65, 81, 0.1);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            resize: none;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.5;
+            max-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text-secondary);
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: white;
+        }
+
+        .send-btn:hover {
+            opacity: 1;
+            background: var(--accent-light);
+        }
+
+        .voice-btn.active {
+            background: var(--danger);
+            color: white;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            100% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .voice-btn.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        /* Panels */
+        .panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 50;
+        }
+
+        .panel-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--glass-border);
+        }
+
+        .side-panel.active {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.5);
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: rgba(0, 0, 0, 0.3);
+            background: #fff;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .list-item {
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+
+        .skill-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.05);
+            font-weight: 500;
+        }
+
+        .time-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            z-index: 100;
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            z-index: 70;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Reminder Alert Modal */
+        .alert-modal {
+            background: white;
+            padding: 32px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .alert-icon {
+            width: 48px;
+            height: 48px;
+            background: #fef2f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: var(--danger);
+        }
+
+        @media (max-width: 640px) {
+            .side-panel {
+                max-width: 100%;
+            }
+
+            .message {
+                max-width: 92%;
+            }
+        }
+    </style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1f2937">
+    <link rel="apple-touch-icon" href="logo.png">
+</head>
+
+<body>
+
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+
+    <div class="app-container glass">
+        <header class="glass-header">
+            <div class="logo">BrowserClaw</div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="openPanel('reminders')" aria-label="Reminders" id="reminderBtn">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                    <span id="reminderBadge" class="badge" style="display:none;"></span>
+                </button>
+                <button class="icon-btn" onclick="openPanel('settings')" aria-label="Settings">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openPanel('connections')" aria-label="Connections">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openPanel('info')" aria-label="User Info">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="chat-wrapper" id="chatWrapper">
+            <div class="messages" id="messageList"></div>
+            <div id="typingIndicator" style="display: none; padding-left: 12px; opacity: 0.7;">
+                <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-box glass">
+                <textarea id="userInput" rows="1" placeholder="Message BrowserClaw..."
+                    onkeydown="handleKeyDown(event)"></textarea>
+                <button id="voiceBtn" class="action-btn voice-btn" onclick="toggleVoice()" aria-label="Voice Input">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+                <button class="action-btn send-btn" onclick="sendMessage()" aria-label="Send">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panels -->
+    <div class="panel-overlay" id="overlay" onclick="closeAllPanels()"></div>
+
+    <!-- Settings Panel -->
+    <div class="side-panel" id="settingsPanel">
+        <div class="panel-header">
+            <span class="panel-title">Settings</span>
+            <button class="icon-btn" onclick="closeAllPanels()"><svg width="16" height="16" fill="none"
+                    stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg></button>
+        </div>
+        <div class="panel-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">Configure
+                your BrowserClaw experience. An active Gemini API key is required to use this assistant.</p>
+            <div class="input-group">
+                <label class="input-label">Gemini API Key</label>
+                <input type="password" id="apiKeyInput" class="input-field" placeholder="Enter API Key">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Bot Personality & Name</label>
+                <input type="text" id="personalityInput" class="input-field"
+                    placeholder="e.g. friendly, straightforward">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Accent Color</label>
+                <input type="color" id="colorInput" class="input-field" style="padding: 4px; height: 40px;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
+                <button class="btn btn-block" style="flex: 1;" onclick="saveSettings()">Save Settings</button>
+                <span id="settingsSuccessMsg"
+                    style="font-size: 12px; color: var(--success); opacity: 0; transition: opacity 0.3s; white-space: nowrap;">Saved
+                    successfully!</span>
+            </div>
+            <button class="btn btn-outline btn-block" style="margin-top: 10px;" onclick="clearAllData()">Clear All
+                Data</button>
+        </div>
+    </div>
+
+    <!-- Reminders Panel -->
+    <div class="side-panel" id="remindersPanel">
+        <div class="panel-header">
+            <span class="panel-title">Reminders</span>
+            <button class="icon-btn" onclick="closeAllPanels()"><svg width="16" height="16" fill="none"
+                    stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg></button>
+        </div>
+        <div class="panel-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Keep track of your tasks directly within your chat. Type <code
+                    style="background:rgba(0,0,0,0.05);padding:2px 4px;border-radius:4px;">/remind me to... [time]</code>
+                in chat to set a new reminder.
+                <br><br>
+                For example: <em>"/remind me to call John tomorrow at 3pm"</em>. From here, you can also sync them to
+                your Google, Outlook, or Apple Calendar!
+            </p>
+            <div id="remindersList"></div>
+        </div>
+    </div>
+
+    <!-- Connections Panel -->
+    <div class="side-panel" id="connectionsPanel">
+        <div class="panel-header">
+            <span class="panel-title">Skills & Connections</span>
+            <button class="icon-btn" onclick="closeAllPanels()"><svg width="16" height="16" fill="none"
+                    stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg></button>
+        </div>
+        <div class="panel-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Connect BrowserClaw to the outside world using custom Make.com webhooks.
+                <br><br>
+                Create a new skill automatically by typing <code
+                    style="background:rgba(0,0,0,0.05);padding:2px 4px;border-radius:4px;">/skill [what it does]</code>
+                in chat, or add one manually below by specifying a chat trigger command (e.g. <code>/email</code>).
+            </p>
+            <div id="connectionsList"></div>
+            <button class="btn btn-outline btn-block" style="margin-top: 16px;"
+                onclick="openModal('addConnectionModal')">Add Connection Manually</button>
+        </div>
+    </div>
+
+    <div class="side-panel" id="infoPanel">
+        <div class="panel-header">
+            <span class="panel-title">User Memory</span>
+            <button class="icon-btn" onclick="closeAllPanels()"><svg width="16" height="16" fill="none"
+                    stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg></button>
+        </div>
+        <div class="panel-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                BrowserClaw continually extracts important facts about you from your conversations to personalize future
+                chats.
+                <br><br>
+                You can manually add new facts below or use the "Optimize Memory" button to automatically clean up and
+                consolidate duplicates.
+            </p>
+            <div id="factsList"></div>
+            <button class="btn btn-outline btn-block" style="margin-top: 16px;" onclick="openModal('addFactModal')">Add
+                Fact</button>
+            <button class="btn btn-outline btn-block" id="optimizeBtn" style="margin-top: 8px;"
+                onclick="optimizeFacts()">Optimize Memory</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="addFactModal" class="modal-overlay">
+        <div class="glass" style="width:100%; max-width:400px; padding:24px; border-radius:16px;">
+            <h3 style="font-size:14px; margin-bottom:12px;">Add Fact</h3>
+            <textarea id="newFactText" class="input-field" rows="3" placeholder="User is 6 feet tall..."></textarea>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-outline" style="flex:1" onclick="closeModal('addFactModal')">Cancel</button>
+                <button class="btn" style="flex:1" onclick="addFact()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addConnectionModal" class="modal-overlay">
+        <div class="glass" style="width:100%; max-width:400px; padding:24px; border-radius:16px;">
+            <h3 style="font-size:14px; margin-bottom:12px;">Add Connection</h3>
+            <div class="input-group">
+                <label class="input-label">Trigger Word (e.g. /email)</label>
+                <input type="text" id="connTrigger" class="input-field" placeholder="/email">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Webhook URL</label>
+                <input type="text" id="connUrl" class="input-field" placeholder="https://hook.make.com/...">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Description (For AI to understand)</label>
+                <textarea id="connDesc" class="input-field" rows="2" placeholder="Sends an email via Gmail"></textarea>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-outline" style="flex:1"
+                    onclick="closeModal('addConnectionModal')">Cancel</button>
+                <button class="btn" style="flex:1" onclick="addConnection()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reminder Alert Modal -->
+    <div id="reminderAlertModal" class="modal-overlay">
+        <div class="alert-modal">
+            <div class="alert-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 style="font-size:18px; font-weight:600; margin-bottom:8px;">Reminder</h3>
+            <p id="reminderAlertText" style="color:var(--text-secondary); margin-bottom:24px;">Message</p>
+            <button class="btn btn-block" onclick="dismissReminderAlert()">Dismiss</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Notification</div>
+
+    <script>
+        // --- State Management ---
+        let state = {
+            messages: [],
+            facts: [],
+            connections: [],
+            reminders: [], // { id, text, time (timestamp) }
+            settings: { apiKey: '', accent: '#374151', botPersonality: '' },
+            messageCount: 0,
+            isOnboarding: false
+        };
+
+        const LS_KEY = 'browserclaw_v1';
+
+        // --- Voice Setup ---
+        const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        let audioContext = null;
+
+        function initVoice() {
+            if (!VoiceRecognition) {
+                const btn = document.getElementById('voiceBtn');
+                if (btn) btn.classList.add('disabled');
+                return;
+            }
+            recognition = new VoiceRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.onstart = () => { isListening = true; document.getElementById('voiceBtn').classList.add('active'); };
+            recognition.onend = () => { isListening = false; document.getElementById('voiceBtn').classList.remove('active'); };
+            recognition.onresult = (event) => {
+                const transcript = Array.from(event.results).map(result => result[0].transcript).join('');
+                document.getElementById('userInput').value = transcript;
+            };
+            recognition.onerror = (event) => { showToast("Voice error: " + event.error); };
+        }
+
+        async function toggleVoice() {
+            if (!recognition) return;
+            if (isListening) { recognition.stop(); return; }
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                recognition.start();
+            } catch (err) { showToast("Microphone access denied."); }
+        }
+
+        // --- Core Logic ---
+        function loadState() {
+            const saved = localStorage.getItem(LS_KEY);
+            if (saved) { try { state = JSON.parse(saved); } catch (e) { console.error(e); } }
+
+            let isFirstLoad = (!state.settings.apiKey && state.messages.length === 0 && !state.isOnboarding);
+
+            applySettings();
+            renderAll();
+            initVoice();
+            initAudio();
+
+            if (isFirstLoad) {
+                const welcomeMessages = [
+                    "Hello there. It's nice to meet you.",
+                    "I am an AI assistant that lives right in your browser with no intermediary servers. Of course, we need an LLM to work so they do get access.",
+                    "To begin click on the <svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" viewBox=\"0 0 24 24\" style=\"vertical-align: sub; margin: 0 2px;\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z\" /><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\" /></svg> gear icon at the top and enter your Gemini api key. You can generate one for free at: https://aistudio.google.com/api-keys",
+                    "Use the <svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" viewBox=\"0 0 24 24\" style=\"vertical-align: sub; margin: 0 2px;\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244\" /></svg> connectors icon to set up webhook connections to other services.",
+                    "The <svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" viewBox=\"0 0 24 24\" style=\"vertical-align: sub; margin: 0 2px;\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\" /></svg> history icon stores facts and context extracted from our conversations so I can remember things about you.",
+                    "And the <svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" viewBox=\"0 0 24 24\" style=\"vertical-align: sub; margin: 0 2px;\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0\" /></svg> reminders icon lets you manage and view any reminders you set with me."
+                ];
+
+                let msgIndex = 0;
+
+                function showNextMessage() {
+                    if (msgIndex < welcomeMessages.length) {
+                        document.getElementById('typingIndicator').style.display = 'block';
+
+                        setTimeout(() => {
+                            document.getElementById('typingIndicator').style.display = 'none';
+                            const newMsg = { role: 'assistant', content: welcomeMessages[msgIndex] };
+                            if (msgIndex === welcomeMessages.length - 1) {
+                                newMsg.actions = [{ label: 'I got it.', functionName: 'startOnboarding', args: [] }];
+                            }
+                            state.messages.push(newMsg);
+                            saveState();
+                            renderMessages();
+                            msgIndex++;
+
+                            if (msgIndex < welcomeMessages.length) {
+                                setTimeout(showNextMessage, 500); // Wait 0.5s before starting the next indicator
+                            }
+                        }, 1000); // 1 second typing delay for each message
+                    }
+                }
+                setTimeout(showNextMessage, 500); // Initial start delay
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(LS_KEY, JSON.stringify(state));
+        }
+
+        function applySettings() {
+            if (state.settings.accent) { document.documentElement.style.setProperty('--accent', state.settings.accent); }
+            document.getElementById('apiKeyInput').value = state.settings.apiKey || '';
+            document.getElementById('personalityInput').value = state.settings.botPersonality || '';
+            document.getElementById('colorInput').value = state.settings.accent || '#374151';
+        }
+
+        // --- UI Logic ---
+        function openPanel(id) {
+            document.getElementById(id + 'Panel').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+        function closeAllPanels() {
+            document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('addFactModal').style.display = 'none';
+            document.getElementById('addConnectionModal').style.display = 'none';
+            // Don't close alert modal on overlay click
+        }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // --- Rendering ---
+        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        function renderMarkdown(text) { return DOMPurify.sanitize(marked.parse(text)); }
+
+        function renderMessages() {
+            const list = document.getElementById('messageList');
+            list.innerHTML = '';
+            state.messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `message ${msg.role}`;
+                const content = document.createElement('div');
+                content.className = 'message-content';
+                content.innerHTML = msg.role === 'assistant' ? renderMarkdown(msg.content) : escapeHtml(msg.content);
+
+                if (msg.actions) {
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.marginTop = '12px';
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.style.gap = '8px';
+                    actionsDiv.style.flexWrap = 'wrap';
+                    msg.actions.forEach(act => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-outline';
+                        btn.style.fontSize = '12px';
+                        btn.style.padding = '6px 12px';
+                        btn.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+                        btn.style.borderRadius = '20px';
+                        btn.style.border = '1px solid rgba(0,0,0,0.1)';
+                        btn.style.cursor = 'pointer';
+                        btn.textContent = act.label;
+                        btn.onclick = () => window[act.functionName](...act.args);
+                        btn.onmouseover = () => btn.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                        btn.onmouseout = () => btn.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+                        actionsDiv.appendChild(btn);
+                    });
+                    content.appendChild(actionsDiv);
+                }
+
+                div.appendChild(content);
+                list.appendChild(div);
+            });
+            document.getElementById('chatWrapper').scrollTop = document.getElementById('chatWrapper').scrollHeight;
+        }
+
+        function renderReminders() {
+            const list = document.getElementById('remindersList');
+            const now = Date.now();
+            // Filter out past reminders
+            state.reminders = state.reminders.filter(r => r.time > now);
+            saveState(); // Save cleaned list
+
+            if (state.reminders.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:12px; padding:20px;">No upcoming reminders.</div>';
+                document.getElementById('reminderBadge').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('reminderBadge').style.display = 'block';
+            list.innerHTML = state.reminders.sort((a, b) => a.time - b.time).map(r => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <span style="font-size:12px; flex:1;">${escapeHtml(r.text)}</span>
+                        <button onclick="deleteReminder('${r.id}')" style="border:none; background:none; cursor:pointer; opacity:0.4; margin-left:8px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div class="time-tag" style="margin-top:6px; display:inline-block;">
+                        ${new Date(r.time).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFacts() {
+            const list = document.getElementById('factsList');
+            if (state.facts.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:12px; padding:20px;">No memories stored yet.</div>'; return; }
+            list.innerHTML = state.facts.map((f, i) => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <span style="font-size:12px;">${escapeHtml(f)}</span>
+                        <button onclick="deleteFact(${i})" style="border:none; background:none; cursor:pointer; opacity:0.4;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderConnections() {
+            const list = document.getElementById('connectionsList');
+            if (state.connections.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:12px; padding:20px;">No connections active.</div>'; return; }
+            list.innerHTML = state.connections.map((c, i) => `
+                <div class="list-item">
+                    <div class="list-item-header">
+                        <span class="skill-tag">${escapeHtml(c.trigger)}</span>
+                        <button onclick="deleteConnection(${i})" style="border:none; background:none; cursor:pointer; opacity:0.4;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div style="font-size:12px; margin-top:4px; opacity:0.7;">${escapeHtml(c.description || 'No description')}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderAll() { renderMessages(); renderReminders(); renderFacts(); renderConnections(); }
+
+        // --- Calendar Export Logic ---
+        function formatUTCValidString(timestamp) {
+            const d = new Date(timestamp);
+            return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); // YYYYMMDDTHHmmSSZ
+        }
+        function formatOutlookString(timestamp) {
+            const d = new Date(timestamp);
+            return d.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:SSZ
+        }
+        function addToGoogleCalendar(title, timestamp) {
+            const start = formatUTCValidString(timestamp);
+            const end = formatUTCValidString(timestamp + 3600000); // 1 hour duration default
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}`;
+            window.open(url, '_blank');
+        }
+        function addToOutlookCalendar(title, timestamp) {
+            const start = formatOutlookString(timestamp);
+            const end = formatOutlookString(timestamp + 3600000); // 1 hour duration default
+            const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(title)}&startdt=${start}&enddt=${end}`;
+            window.open(url, '_blank');
+        }
+        function addToAppleCalendar(title, timestamp) {
+            const start = formatUTCValidString(timestamp);
+            const end = formatUTCValidString(timestamp + 3600000);
+            const icsText = "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:" + start + "\nDTEND:" + end + "\nSUMMARY:" + title + "\nEND:VEVENT\nEND:VCALENDAR";
+            const blob = new Blob([icsText], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'reminder.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- API & Logic ---
+        async function callGemini(prompt, system) {
+            if (!state.settings.apiKey) return "Please set your Gemini API Key in settings.";
+            const sysContext = state.facts.length ? `User Context: ${state.facts.join('; ')}` : '';
+            const personalityContext = state.settings.botPersonality ? `Your personality/name preference: ${state.settings.botPersonality}. ` : '';
+            const contents = state.messages.slice(-10).map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] }));
+            contents.push({ role: 'user', parts: [{ text: prompt }] });
+
+            try {
+                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': state.settings.apiKey
+                    },
+                    body: JSON.stringify({
+                        contents,
+                        tools: [{ "google_search": {} }],
+                        systemInstruction: { parts: [{ text: personalityContext + (system || 'You are a helpful assistant.') + ' ' + sysContext }] }
+                    })
+                });
+                const data = await res.json();
+                if (data.error) return `API Error: ${data.error.message}`;
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
+            } catch (e) { return `Network Error: ${e.message}`; }
+        }
+
+        async function handleReminderRequest(text) {
+            if (!state.settings.apiKey) return "Please set API key to use reminders.";
+
+            const now = new Date();
+            const timeString = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+
+            // Ask Gemini to parse the time
+            const sysPrompt = `You are a scheduler. Extract the reminder message and the exact time from the user request. 
+            The current date and time is: ${timeString}.
+            Return ONLY a valid JSON object with keys: "message" (string) and "time" (ISO 8601 string, make sure to consider the local timezone). 
+            Examples: 
+            - Request: "/remind me to call mom tomorrow at 2pm", JSON: {"message": "call mom", "time": "2024-12-26T14:00:00"} (assuming today is Dec 25th)
+            - Request: "/remind me to call jatin on 14th March at 6pm", JSON: {"message": "call jatin", "time": "2025-03-14T18:00:00"}
+            If the time is ambiguous or past, set time to null.`;
+
+            const jsonResponse = await callGemini(text, sysPrompt);
+
+            try {
+                // Clean markdown if AI wraps it
+                const cleanJson = jsonResponse.replace(/```json\n?|\n?```/g, '').trim();
+                const data = JSON.parse(cleanJson);
+
+                if (!data.time) return "I couldn't understand the time for that reminder.";
+
+                const timestamp = new Date(data.time).getTime();
+                if (isNaN(timestamp) || timestamp < Date.now()) return "That time has already passed.";
+
+                const reminder = {
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    text: data.message,
+                    time: timestamp
+                };
+
+                state.reminders.push(reminder);
+                saveState();
+                renderReminders();
+
+                const formattedTime = new Date(timestamp).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+                return {
+                    content: `Got it. I'll remind you to "${data.message}" at ${formattedTime}. Click a button below to automatically be routed to the appropriate calendar service and click save to schedule it.`,
+                    actions: [
+                        { label: 'Google Calendar', functionName: 'addToGoogleCalendar', args: [data.message, timestamp] },
+                        { label: 'Outlook', functionName: 'addToOutlookCalendar', args: [data.message, timestamp] },
+                        { label: 'Apple Calendar', functionName: 'addToAppleCalendar', args: [data.message, timestamp] }
+                    ]
+                };
+            } catch (e) {
+                console.error(e);
+                return "I had trouble setting that reminder. Please try being specific about the time (e.g., 'tomorrow at 2pm').";
+            }
+        }
+
+        async function handleSkillCreation(desc) {
+            const sys = `You are an automation expert. A user wants to create a skill: "${desc}". Provide concise step-by-step instructions for Make.com.`;
+            return await callGemini(desc, sys);
+        }
+
+        async function handleSkillExecution(conn, input) {
+            const sys = `You are a data formatter. User wants to: "${input}". Action: "${conn.description}". Output ONLY valid JSON.`;
+            const jsonStr = await callGemini(input, sys);
+            let payload;
+            try {
+                const clean = jsonStr.replace(/```json\n?|\n?```/g, '').trim();
+                payload = JSON.parse(clean);
+            } catch (e) { return `Failed to generate valid JSON. AI said: ${jsonStr}`; }
+
+            try {
+                const res = await fetch(conn.url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                // 'no-cors' mode returns an opaque response, ok is always false
+                return `Executed skill "${conn.trigger}".`;
+            } catch (e) { return `Webhook failed: ${e.message}`; }
+        }
+
+        async function startOnboarding() {
+            state.messages = [];
+            state.isOnboarding = true;
+            renderMessages();
+            document.getElementById('typingIndicator').style.display = 'block';
+
+            setTimeout(() => {
+                document.getElementById('typingIndicator').style.display = 'none';
+                state.messages.push({ role: 'assistant', content: "Alright. Let's get started. Can you tell me a little bit about yourself - like your name, location, relationships, etc. It'll help me talk to you better." });
+                saveState();
+                renderMessages();
+            }, 1000);
+        }
+
+        async function handleOnboardingRequest(text) {
+            const factPrompt = `Extract the key factual information from this user response: "${text}".
+Return only a short, clear sentence about the user (e.g. "User's name is John", "User lives in New York"). If no clear fact is found, return the word "NONE". DO NOT use markdown.`;
+            const fact = await callGemini(factPrompt, "You are a helpful data extractor.");
+            if (fact && fact.trim() && fact.trim() !== "NONE" && !fact.startsWith('API Error')) {
+                state.facts.push(fact.trim());
+                saveState();
+                renderFacts();
+            }
+
+            const conversation = state.messages.map(m => `${m.role}: ${m.content}`).join('\n');
+            const onbPrompt = `Here is our conversation so far:
+${conversation}
+
+We are in the onboarding phase. If the user provided info, thank them concisely, tell them you've saved that into memory, and say we are ready to assist. 
+If the user refused or wants to skip, acknowledge that it's totally fine, and say we are ready to assist them whenever they need.
+In EITHER case (whether they provided info or skipped), you MUST append exactly [ONBOARDING_COMPLETE] to the end of your response to signify onboarding is done. DO NOT ask any further questions.`;
+
+            const res = await callGemini(onbPrompt, "You are an onboarding assistant. Follow instructions precisely.");
+
+            if (res.includes('[ONBOARDING_COMPLETE]')) {
+                state.isOnboarding = false;
+                return res.replace('[ONBOARDING_COMPLETE]', '').trim();
+            }
+            return res;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            state.messages.push({ role: 'user', content: text });
+            input.value = '';
+            input.style.height = 'auto';
+            renderMessages();
+            document.getElementById('typingIndicator').style.display = 'block';
+
+            let response;
+
+            if (state.isOnboarding) {
+                response = await handleOnboardingRequest(text);
+            } else if (text.toLowerCase().startsWith('/remind')) {
+                response = await handleReminderRequest(text);
+            } else if (text.startsWith('/skill ')) {
+                response = await handleSkillCreation(text.replace('/skill ', ''));
+            } else {
+                const conn = state.connections.find(c => text.toLowerCase().startsWith(c.trigger.toLowerCase()));
+                if (conn) {
+                    response = await handleSkillExecution(conn, text.substring(conn.trigger.length).trim());
+                } else {
+                    response = await callGemini(text);
+                    state.messageCount++;
+                    if (state.messageCount % 20 === 0) extractFacts();
+                }
+            }
+
+            document.getElementById('typingIndicator').style.display = 'none';
+            if (typeof response === 'object' && response !== null) {
+                state.messages.push({ role: 'assistant', content: response.content, actions: response.actions });
+            } else {
+                state.messages.push({ role: 'assistant', content: response });
+            }
+            saveState();
+            renderMessages();
+        }
+
+        function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+
+        async function extractFacts() {
+            if (state.messages.length < 20) return;
+            const history = state.messages.slice(-20).map(m => `${m.role}: ${m.content}`).join('\n');
+            const sys = "Extract key facts about the user. Return a list of short sentences.";
+            const facts = await callGemini(history, sys);
+            if (facts && facts.trim() && !facts.startsWith('API Error') && !facts.startsWith('Network Error') && !facts.startsWith('Please set')) {
+                const newFacts = facts.split('\n').filter(f => f.trim());
+                state.facts = [...state.facts, ...newFacts];
+                saveState();
+                renderFacts();
+                if (state.facts.length > 20) optimizeFacts();
+            }
+        }
+
+        async function optimizeFacts() {
+            if (state.facts.length === 0) return;
+            const btn = document.getElementById('optimizeBtn');
+            if (btn) btn.innerText = 'Optimizing...';
+
+            const factsText = state.facts.map((f, i) => `${i + 1}. ${f}`).join('\n');
+            const sys = "Review the provided user facts. Remove duplicates, merge related information seamlessly, and return a clean, concise list of short absolute facts about the user. Return exactly one fact per line, with no extra text or numbering.";
+            const optimized = await callGemini(`Optimize these facts:\n${factsText}`, sys);
+
+            if (optimized && optimized.trim() && !optimized.startsWith('API Error') && !optimized.startsWith('Network Error') && !optimized.startsWith('Please set')) {
+                const newFacts = optimized.split('\n')
+                    .map(f => f.replace(/^[-*•\d.]+\s*/, '').trim())
+                    .filter(f => f);
+                if (newFacts.length > 0) {
+                    state.facts = newFacts;
+                    saveState();
+                    renderFacts();
+                }
+            }
+            if (btn) btn.innerText = 'Optimize Memory';
+        }
+
+        // --- Reminder Logic ---
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBuzzer() {
+            initAudio();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 660; // A5
+            oscillator.type = 'triangle';
+            gainNode.gain.value = 0.1;
+
+            oscillator.start();
+
+            // Beep pattern
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i > 4) { clearInterval(interval); oscillator.stop(); return; }
+                gainNode.gain.value = gainNode.gain.value > 0 ? 0 : 0.1;
+                i++;
+            }, 200);
+        }
+
+        function checkReminders() {
+            const now = Date.now();
+            // Find reminders that are due (time <= now) but not too old (within 1 minute window for safety)
+            const due = state.reminders.find(r => r.time <= now && r.time > now - 60000);
+
+            if (due) {
+                triggerReminderAlert(due);
+                // Remove triggered reminder
+                state.reminders = state.reminders.filter(r => r.id !== due.id);
+                saveState();
+                renderReminders();
+            }
+        }
+
+        function triggerReminderAlert(reminder) {
+            playBuzzer();
+            document.getElementById('reminderAlertText').textContent = reminder.text;
+            document.getElementById('reminderAlertModal').style.display = 'flex';
+
+            // Try native notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('BrowserClaw Reminder', { body: reminder.text });
+            }
+        }
+
+        function dismissReminderAlert() {
+            document.getElementById('reminderAlertModal').style.display = 'none';
+        }
+
+        // --- Settings & Data ---
+        function saveSettings() {
+            state.settings.apiKey = document.getElementById('apiKeyInput').value;
+            state.settings.botPersonality = document.getElementById('personalityInput').value;
+            state.settings.accent = document.getElementById('colorInput').value;
+            applySettings();
+            saveState();
+
+            // Show inline success message
+            const successMsg = document.getElementById('settingsSuccessMsg');
+            successMsg.style.opacity = '1';
+            setTimeout(() => {
+                successMsg.style.opacity = '0';
+            }, 2000);
+
+            showToast('Settings saved');
+        }
+
+        function addFact() {
+            const text = document.getElementById('newFactText').value.trim();
+            if (text) { state.facts.push(text); saveState(); renderFacts(); closeModal('addFactModal'); document.getElementById('newFactText').value = ''; }
+        }
+        function addConnection() {
+            const trigger = document.getElementById('connTrigger').value.trim();
+            const url = document.getElementById('connUrl').value.trim();
+            const desc = document.getElementById('connDesc').value.trim();
+
+            if (url && url.includes('@hook.')) {
+                showToast('Please use a Make "Custom Webhook" URL, not a Mailhook email address.');
+                return;
+            }
+            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                showToast('Please enter a valid HTTP or HTTPS Webhook URL.');
+                return;
+            }
+
+            if (trigger && url) {
+                state.connections.push({ trigger, url, description: desc });
+                saveState();
+                renderConnections();
+                closeModal('addConnectionModal');
+                document.getElementById('connTrigger').value = '';
+                document.getElementById('connUrl').value = '';
+                document.getElementById('connDesc').value = '';
+            }
+        }
+
+        function deleteFact(i) { state.facts.splice(i, 1); saveState(); renderFacts(); }
+        function deleteConnection(i) { state.connections.splice(i, 1); saveState(); renderConnections(); }
+        function deleteReminder(id) { state.reminders = state.reminders.filter(r => r.id !== id); saveState(); renderReminders(); }
+        function clearAllData() { if (confirm('Clear all data?')) { localStorage.removeItem(LS_KEY); location.reload(); } }
+
+        // Request notification permission and unlock audio context on first user action
+        const unlockAudio = () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            initAudio();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            // Play a silent oscillator to thoroughly unlock audio on Safari
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(0);
+            osc.stop(audioContext.currentTime + 0.1);
+
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        };
+
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        document.addEventListener('keydown', unlockAudio);
+
+        // Init
+        loadState();
+        setInterval(checkReminders, 1000); // Check every second
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
