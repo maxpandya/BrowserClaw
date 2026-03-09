@@ -2,6 +2,8 @@
 
 BrowserClaw is a personalized, browser-based AI assistant powered by the Gemini API. It features voice input, task reminders, long-term user memory, and custom webhook integrations.
 
+Download ths source code and upload it on any https enabled server (GoDaddy, Hostinger, Vercel, Netlify) or access it directly at browserapps.org/browserclaw/index.html. All data / keys are stored locally on your browser. Installable as a PWA on your mobile devices.
+
 ## 🚀 Getting Started
 
 To unlock the full functionality of BrowserClaw, follow these quick steps:
